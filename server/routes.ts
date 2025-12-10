@@ -61,17 +61,18 @@ export async function registerRoutes(
       if (req.file) {
         await storage.updateClipJob(job.id, {
           videoPath: req.file.path,
+          sourceFilename: req.file.originalname,
         });
       }
 
       processClipJob(job.id).catch((error) => {
-        console.error(`Job ${job.id} failed:`, error);
+        console.error(`Job ${job.id} failed:`, error.message);
       });
 
       res.json({ jobId: job.id });
     } catch (error: any) {
       console.error("Error creating clip job:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to create clip job. Please try again." });
     }
   });
 
@@ -99,7 +100,7 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Error getting job:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to retrieve job status" });
     }
   });
 
@@ -126,7 +127,7 @@ export async function registerRoutes(
       stream.pipe(res);
     } catch (error: any) {
       console.error("Error serving clip:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to download clip" });
     }
   });
 
@@ -176,7 +177,7 @@ export async function registerRoutes(
       }
     } catch (error: any) {
       console.error("Error streaming clip:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to stream clip" });
     }
   });
 

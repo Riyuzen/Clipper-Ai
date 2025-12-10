@@ -18,6 +18,16 @@ export async function downloadVideo(url: string, jobId: string): Promise<string>
     
     await execAsync(command, { timeout: 300000 });
     
+    const files = await fs.readdir(VIDEOS_DIR);
+    const matchingFile = files.find(f => f.startsWith(jobId) && (f.endsWith('.mp4') || f.endsWith('.webm') || f.endsWith('.mkv')));
+    
+    if (matchingFile) {
+      const actualPath = path.join(VIDEOS_DIR, matchingFile);
+      if (actualPath !== outputPath && await fs.pathExists(actualPath)) {
+        await fs.move(actualPath, outputPath, { overwrite: true });
+      }
+    }
+    
     if (!await fs.pathExists(outputPath)) {
       throw new Error("Video download failed - output file not found");
     }
@@ -28,13 +38,22 @@ export async function downloadVideo(url: string, jobId: string): Promise<string>
   }
 }
 
-export async function getVideoFromUpload(filePath: string, jobId: string): Promise<string> {
+export async function processUploadedFile(tempPath: string, originalName: string, jobId: string): Promise<string> {
   await fs.ensureDir(VIDEOS_DIR);
   
-  const ext = path.extname(filePath);
+  const ext = path.extname(originalName) || '.mp4';
   const outputPath = path.join(VIDEOS_DIR, `${jobId}${ext}`);
   
-  await fs.copy(filePath, outputPath);
+  if (!await fs.pathExists(tempPath)) {
+    throw new Error("Uploaded file not found");
+  }
+  
+  await fs.copy(tempPath, outputPath);
+  
+  try {
+    await fs.unlink(tempPath);
+  } catch {
+  }
   
   return outputPath;
 }
